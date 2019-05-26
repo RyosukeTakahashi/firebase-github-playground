@@ -31,62 +31,34 @@ class App extends Component {
     const options = {
       headers: {'Authorization': `token ${this.state.ghToken}`},
     };
-    console.log(options);
-    console.log(this.state.userName);
     const res = await axios.get(
       `https://api.github.com/users/${this.state.userName}/events`, options);
     const data = await res.data;
     await this.setState({data});
   };
 
-  generateCommitString = () => {
-
-    const allCommits = this.state.data.filter(
-      activity => activity.type === 'PushEvent' && activity.repo.name.includes("intellij") === false)
-      .reduce((accCommits, curActivity) => {
-
-        const commitMessages = curActivity.payload.commits.map(commit => {
-          return {
-            repoName: curActivity.repo.name,
-            message: ` - ${commit.message}`,
-            createdAt: curActivity.createdAt
-          };
-        });
-
-        return accCommits.concat(commitMessages);
-
-      }, []);
-
-    const allCommitMessages = allCommits.map(e => e.message).join('\n');
-
-    this.setState({allCommitMessages, loading: false});
-
-  };
 
   generatePushCommitString = () => {
 
     const pushEvents = this.state.data.filter(
-      activity => activity.type === 'PushEvent' && activity.repo.name.includes("intellij") === false
-    ).map((pushEvent)=>{
+      activity => activity.type === 'PushEvent' &&
+        activity.repo.name.includes('intellij') === false,
+    ).map((pushEvent) => {
 
       const pushAndCommitsStr = ` - ${pushEvent.repo.name}
 ${pushEvent.payload.commits.map(commit => `  - ${commit.message}`).join('\n')}
 `;
-      return pushAndCommitsStr
+      return pushAndCommitsStr;
 
     }).join('\n');
-
-
 
     this.setState({allCommitMessages: pushEvents, loading: false});
 
   };
 
-
-
   handleLoginClick = async () => {
 
-    await this.setState({loading: true});
+    await this.setState({loading: true, allCommitMessages: "...Logging in getting your recent commits."});
 
     const result = await firebase.auth()
       .signInWithPopup(provider)
@@ -124,7 +96,7 @@ ${pushEvent.payload.commits.map(commit => `  - ${commit.message}`).join('\n')}
     return (
       <div className="App">
         <p>
-          What did you commit today?
+          What did you commit recently?
         </p>
         <div className="login-button">
           <Button onClick={this.handleLoginClick} disabled={this.state.loading}
@@ -135,13 +107,13 @@ ${pushEvent.payload.commits.map(commit => `  - ${commit.message}`).join('\n')}
         <div className="copy-button">
           <CopyToClipboard text={this.state.allCommitMessages}
                            onCopy={() => this.setState({copied: true})}>
-            <Button disabled={this.state.allCommitMessages.length === 0}
+            <Button disabled={this.state.allCommitMessages.includes('-') === false}
                     variant={'contained'}>Copy Commits to Clipboard</Button>
           </CopyToClipboard>
         </div>
 
         <textarea name="" id="" cols="50" rows="20"
-                  value={this.state.allCommitMessages}>
+                  value={this.state.allCommitMessages} readOnly>
         </textarea>
 
         {this.state.copied &&
